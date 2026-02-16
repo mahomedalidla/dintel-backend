@@ -72,3 +72,8 @@ app.get('/f1/dashboard/:driverNum', async (req, res) => {
         res.status(500).json({ mode: "ERROR", val: "!!" });
     }
 });
+
+// 3. ENCENDER EL MOTOR (Al final)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Dintel Studio: Engine Started on port ${PORT}`);
+});
