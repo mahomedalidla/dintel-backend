@@ -6,23 +6,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 2. BASE DE DATOS DE EDICIONES DE LEYENDA (LEGACY)
-// Aquí registramos identidades fijas que no dependen de la telemetría actual
 const legacyDrivers = {
     "senna-12": {
         name: "AYRTON SENNA",
-        stats: "3 TITLES | 41 WINS",
+        stats: "3 TITLES\n41 WINS", // El \n hará el "Enter"
         years: "1984 - 1994",
         color: "#FCD116"
     },
     "schumacher-5": {
         name: "M. SCHUMACHER",
-        stats: "7 TITLES | 91 WINS",
+        stats: "7 TITLES\n91 WINS",
         years: "1991 - 2012",
         color: "#FF0000"
     },
     "lauda-12": {
         name: "NIKI LAUDA",
-        stats: "3 TITLES | 25 WINS",
+        stats: "3 TITLES\n25 WINS",
         years: "1971 - 1985",
         color: "#E10600"
     }
@@ -34,7 +33,6 @@ app.get('/f1/dashboard/:id', async (req, res) => {
     const now = new Date();
 
     // --- RUTA A: VALIDACIÓN DE EDICIÓN DE LEYENDA ---
-    // Si el ID existe en nuestra base de datos Legacy, devolvemos sus stats de inmediato
     if (legacyDrivers[id]) {
         const legacy = legacyDrivers[id];
         return res.json({
@@ -46,7 +44,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
         });
     }
 
-    // --- RUTA B: PILOTOS ACTIVOS (Telemetría en Tiempo Real) ---
+    // --- RUTA B: PILOTOS ACTIVOS ---
     try {
         const response = await axios.get('https://api.openf1.org/v1/sessions');
         const sessions = response.data;
@@ -57,7 +55,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
 
         const daysSinceLast = lastSession ? (now - new Date(lastSession.date_end)) / (1000 * 60 * 60 * 24) : 999;
 
-        // CASO 1: SESIÓN EN VIVO (Uso de driverNum como ID para telemetría)
+        // CASO 1: SESIÓN EN VIVO
         if (activeSession) {
             const posRes = await axios.get(`https://api.openf1.org/v1/position?driver_number=${id}&session_key=latest`);
             const pos = posRes.data.slice(-1)[0]?.position || "--";
@@ -66,7 +64,8 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "LIVE",
                 gp: activeSession.location.toUpperCase(),
                 val: `P${pos}`,
-                msg: "SESSION ACTIVE"
+                msg: "SESSION ACTIVE",
+                color: "#FFFFFF" // Blanco mientras corre (o podrías mapear el equipo)
             });
         }
 
@@ -79,7 +78,8 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "POST",
                 gp: lastSession.location.toUpperCase(),
                 val: `P${finalPos}`,
-                msg: "FINAL STANDING"
+                msg: "FINAL STANDING",
+                color: "#FFFFFF" 
             });
         }
 
@@ -90,21 +90,23 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "NEXT",
                 gp: nextSession.location.toUpperCase(),
                 val: fecha.toUpperCase(),
-                msg: "UPCOMING EVENT"
+                msg: "UPCOMING EVENT",
+                color: "#FFFFFF" // Blanco neutro para la espera
             });
         }
 
-        // ESTADO POR DEFECTO (SILENCIOSO / IDLE)
+        // ESTADO POR DEFECTO (IDLE)
         res.json({ 
             mode: "IDLE", 
             gp: "DINTEL STUDIO", 
             val: "", 
-            msg: "" 
+            msg: "",
+            color: "#FFFFFF" // El blanco Apple por excelencia
         });
 
     } catch (error) {
         console.error("Error en Dintel Engine:", error.message);
-        res.status(500).json({ mode: "ERROR", val: "!!" });
+        res.status(500).json({ mode: "ERROR", val: "!!", color: "#FF0000" }); // Rojo en error
     }
 });
 
