@@ -10,19 +10,19 @@ const legacyDrivers = {
     "senna-12": {
         name: "AYRTON SENNA",
         stats: "3 TITLES\n41 WINS", // El \n hará el "Enter"
-        years: "1984 - 1994",
+        years: "84 - 94",
         color: "#FCD116"
     },
     "schumacher-5": {
         name: "M. SCHUMACHER",
         stats: "7 TITLES\n91 WINS",
-        years: "1991 - 2012",
+        years: "91 - 12",
         color: "#FF0000"
     },
     "lauda-12": {
         name: "NIKI LAUDA",
         stats: "3 TITLES\n25 WINS",
-        years: "1971 - 1985",
+        years: "71 - 85",
         color: "#E10600"
     }
 };
@@ -64,7 +64,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "LIVE",
                 gp: activeSession.location.toUpperCase(),
                 val: `P${pos}`,
-                msg: "SESSION ACTIVE",
+                msg: "RACING",
                 color: "#FFFFFF" // Blanco mientras corre (o podrías mapear el equipo)
             });
         }
@@ -78,7 +78,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "POST",
                 gp: lastSession.location.toUpperCase(),
                 val: `P${finalPos}`,
-                msg: "FINAL STANDING",
+                msg: "RESULT",
                 color: "#FFFFFF" 
             });
         }
@@ -90,7 +90,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                 mode: "NEXT",
                 gp: nextSession.location.toUpperCase(),
                 val: fecha.toUpperCase(),
-                msg: "UPCOMING EVENT",
+                msg: "NEXT",
                 color: "#FFFFFF" // Blanco neutro para la espera
             });
         }
