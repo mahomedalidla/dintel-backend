@@ -104,7 +104,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                     mode: "POST",
                     gp: lastSession.location.substring(0, 8).toUpperCase(),
                     val: `P${finalPos}`,
-                    msg: isRace ? "FINAL" : `${simplifySession(lastSession.session_name)} END`,
+                    msg: isRace ? "FINAL" : `${simplifySession(lastSession.session_name)}END`,
                     driver: driverLabel,
                     color: "#FFFFFF"
                 });
