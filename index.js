@@ -19,7 +19,7 @@ const simplifySession = (name) => {
     if (name.includes("Qualifying")) return "QUALY";
     if (name.includes("Sprint")) return "SPRINT";
     if (name.includes("Race")) return "RACE";
-    return "SESSION";
+    return "";
 };
 
 async function getDriverLabel(driverNumber) {
