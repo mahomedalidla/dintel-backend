@@ -19,7 +19,7 @@ const simplifySession = (name) => {
     if (name.includes("Qualifying")) return "QUALY";
     if (name.includes("Sprint")) return "SPRINT";
     if (name.includes("Race")) return "RACE";
-    return "";
+    return "SES";
 };
 
 async function getDriverLabel(driverNumber) {
@@ -39,7 +39,6 @@ app.get('/f1/dashboard/:id', async (req, res) => {
     const { id } = req.params;
     const now = new Date();
 
-    // RUTA A: EDICIÓN LEYENDA
     if (legacyDrivers[id]) {
         const legacy = legacyDrivers[id];
         return res.json({
@@ -52,7 +51,6 @@ app.get('/f1/dashboard/:id', async (req, res) => {
         });
     }
 
-    // RUTA B: PILOTOS ACTIVOS
     try {
         const driverLabel = await getDriverLabel(id);
         const sessionsRes = await axios.get('https://api.openf1.org/v1/sessions');
@@ -62,9 +60,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
         const lastSession = sessions.filter(s => new Date(s.date_end) < now).pop();
         const nextSession = sessions.find(s => new Date(s.date_start) > now);
 
-        // --- LÓGICA DE DECISIÓN DINTEL ---
-
-        // CASO 1: SESIÓN EN VIVO
+        // CASO 1: VIVO
         if (activeSession) {
             const sName = simplifySession(activeSession.session_name);
             try {
@@ -79,7 +75,6 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                     color: "#FFFFFF"
                 });
             } catch (err) {
-                // Fallback si la telemetría falla o está bloqueada
                 return res.json({
                     mode: "LIVE",
                     gp: activeSession.location.substring(0, 8).toUpperCase(),
@@ -91,11 +86,11 @@ app.get('/f1/dashboard/:id', async (req, res) => {
             }
         }
 
-        // CASO 2: POST-EVENTO (Diferenciado por importancia)
+        // CASO 2: POST-EVENTO
         if (lastSession) {
             const hoursSinceLast = (now - new Date(lastSession.date_end)) / (1000 * 60 * 60);
             const isRace = lastSession.session_name.includes("Race");
-            const limit = isRace ? 72 : 4; // 3 días para carrera, 4h para el resto
+            const limit = isRace ? 72 : 4;
 
             if (hoursSinceLast <= limit) {
                 const lastPosRes = await axios.get(`https://api.openf1.org/v1/position?driver_number=${id}&session_key=${lastSession.session_key}`);
@@ -104,18 +99,32 @@ app.get('/f1/dashboard/:id', async (req, res) => {
                     mode: "POST",
                     gp: lastSession.location.substring(0, 8).toUpperCase(),
                     val: `P${finalPos}`,
-                    msg: isRace ? "FINAL" : `${simplifySession(lastSession.session_name)}END`,
+                    msg: isRace ? "FINAL" : `${simplifySession(lastSession.session_name)} END`,
                     driver: driverLabel,
                     color: "#FFFFFF"
                 });
             }
         }
 
-        // CASO 3: TIMER (Solo si falta menos de 24h para el inicio del GP o entre sesiones)
+        // CASO 3: TIMER Y COUNTDOWN
         if (nextSession) {
-            const hoursToNext = (new Date(nextSession.date_start) - now) / (1000 * 60 * 60);
+            const diffMs = new Date(nextSession.date_start) - now;
+            const hoursToNext = diffMs / (1000 * 60 * 60);
             
             if (hoursToNext <= 24) {
+                // SI FALTA MENOS DE 1 HORA -> MODO COUNTDOWN (SEGUNDOS)
+                if (hoursToNext <= 1) {
+                    return res.json({
+                        mode: "COUNT",
+                        gp: nextSession.location.substring(0, 8).toUpperCase(),
+                        val: Math.floor(diffMs / 1000).toString(), // Mandamos total de segundos
+                        msg: simplifySession(nextSession.session_name),
+                        driver: driverLabel,
+                        color: "#FF0000" // Rojo de alerta
+                    });
+                }
+
+                // SI FALTA MÁS DE 1 HORA -> MODO NEXT (DÍAS/HORAS)
                 const days = Math.floor(hoursToNext / 24);
                 const hours = Math.floor(hoursToNext % 24);
                 return res.json({
@@ -129,15 +138,7 @@ app.get('/f1/dashboard/:id', async (req, res) => {
             }
         }
 
-        // CASO 4: IDLE (Fuera de temporada o entre GPs largos)
-        res.json({ 
-            mode: "IDLE", 
-            gp: "DINTEL", 
-            val: "F1", 
-            msg: "STUDIO", 
-            driver: "DNTL",
-            color: "#FFFFFF" 
-        });
+        res.json({ mode: "IDLE", gp: "DINTEL", val: "F1", msg: "STUDIO", driver: "DNTL", color: "#FFFFFF" });
 
     } catch (error) {
         console.error("Engine Error:", error.message);
